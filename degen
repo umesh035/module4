@@ -1,0 +1,65 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.18;
+
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+contract DEGENToken is ERC20, Ownable {
+    event Minted(address indexed acceptor, uint256 item);
+    event Transferred(address indexed sender, address indexed acceptor, uint256 item);
+    event Redeemed(address indexed redeemer, uint256 tokenId, uint256 reward);
+
+    struct Sneaker {
+        uint256 tokenId;
+        uint256 tokensRequired;
+    }
+
+    Sneaker[] public sneakers;
+
+    constructor() ERC20("DEGEN Token", "DEGEN") Ownable(msg.sender) {
+        storeSneaker(10);
+        storeSneaker(20);
+        storeSneaker(30);
+    }
+
+    function mint(address to, uint256 amount) external onlyOwner {
+        _mint(to, amount);
+        emit Minted(to, amount);
+    }
+    
+     function burn(uint256 total) public {
+        require(total > 0);
+        require(balanceOf(msg.sender) >= total);
+        _burn(msg.sender, total);
+    }
+
+    function transferTokens(address to, uint256 amount) external {
+        _transfer(msg.sender, to, amount);
+        emit Transferred(msg.sender, to, amount);
+    }
+
+    function redeemSneaker(uint256 sneakerIndex) external {
+        require(sneakerIndex < sneakers.length, "Invalid sneaker index");
+        Sneaker storage sneaker = sneakers[sneakerIndex];
+        require(balanceOf(msg.sender) >= sneaker.tokensRequired, "Insufficient funds for redemption");
+
+        _burn(msg.sender, sneaker.tokensRequired);
+        emit Redeemed(msg.sender, sneaker.tokenId, sneaker.tokensRequired);
+    }
+
+    function storeSneaker(uint256 tokensRequired) internal onlyOwner {
+        require(tokensRequired > 0, "Tokens required must be greater than zero");
+        sneakers.push(Sneaker(sneakers.length + 1, tokensRequired));
+    }
+
+    function getSneakerCount() external view returns (uint256) {
+        return sneakers.length;
+    }
+
+    function getSneaker(uint256 index) external view returns (uint256 tokenId, uint256 tokensRequired) {
+        require(index < sneakers.length, "Invalid sneaker index");
+        Sneaker storage sneaker = sneakers[index];
+        return (sneaker.tokenId, sneaker.tokensRequired);
+    }
+      
+}
